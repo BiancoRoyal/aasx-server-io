@@ -781,20 +781,30 @@ namespace AasxRestServerLibrary
                 return;
             }
 
-            // datastructure update
-            if (this.Packages[0] == null || this.Packages[0].AasEnv == null || this.Packages[0].AasEnv.AdministrationShells == null)
-            {
-                context.Response.SendResponse(HttpStatusCode.InternalServerError, $"Error accessing internal data structures.");
-                return;
-            }
             context.Server.Logger.Debug($"Putting AdministrationShell with idShort {aas.idShort ?? "--"} and id {aas.identification?.ToString() ?? "--"}");
-            var existingAas = this.Packages[0].AasEnv.FindAAS(aas.identification);
-            if (existingAas != null)
-                this.Packages[0].AasEnv.AdministrationShells.Remove(existingAas);
-            this.Packages[0].AasEnv.AdministrationShells.Add(aas);
 
-            // simple OK
-            SendTextResponse(context, "OK" + ((existingAas != null) ? " (updated)" : " (new)"));
+            for (int envi = 0; envi < this.Packages.Length; envi++)
+            {
+                if (this.Packages[envi] != null)
+                {
+                    var existingAas = this.Packages[envi].AasEnv.FindAAS(aas.identification);
+                    if (existingAas != null)
+                    {
+                        this.Packages[envi].AasEnv.AdministrationShells.Remove(existingAas);
+                        this.Packages[envi].AasEnv.AdministrationShells.Add(aas);
+                        SendTextResponse(context, "OK (update, index="+envi+")");
+                        return;
+                    }
+                }
+                else
+                {
+                    this.Packages[envi] = new AdminShellPackageEnv();
+                    this.Packages[envi].AasEnv.AdministrationShells.Add(aas);
+                    SendTextResponse(context, "OK (new, index=" + envi + ")");
+                    return; ;
+                }
+            }
+            SendTextResponse(context, "Error: not added since datastructure completely filled already");
         }
 
         public void EvalDeleteAasAndAsset(IHttpContext context, string aasid, bool deleteAsset = false)
