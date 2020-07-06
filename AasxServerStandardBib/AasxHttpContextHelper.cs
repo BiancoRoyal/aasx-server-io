@@ -768,6 +768,8 @@ namespace AasxRestServerLibrary
 
             context.Server.Logger.Debug($"Putting AdministrationShell with idShort {aas.idShort ?? "--"} and id {aas.identification?.ToString() ?? "--"}");
 
+            bool emptyPackageAvailable = false;
+            int emptyPackageIndex = -1;
             for (int envi = 0; envi < this.Packages.Length; envi++)
             {
                 if (this.Packages[envi] != null)
@@ -783,13 +785,24 @@ namespace AasxRestServerLibrary
                 }
                 else
                 {
-                    this.Packages[envi] = new AdminShellPackageEnv();
-                    this.Packages[envi].AasEnv.AdministrationShells.Add(aas);
-                    SendTextResponse(context, "OK (new, index=" + envi + ")");
-                    return; ;
+                    if (!emptyPackageAvailable)
+                    {
+                        emptyPackageAvailable = true;
+                        emptyPackageIndex = envi;
+                    }
                 }
             }
+
+            if (emptyPackageAvailable)
+            {
+                this.Packages[emptyPackageIndex] = new AdminShellPackageEnv();
+                this.Packages[emptyPackageIndex].AasEnv.AdministrationShells.Add(aas);
+                SendTextResponse(context, "OK (new, index=" + emptyPackageIndex + ")");
+                return;
+            }
+            
             SendTextResponse(context, "Error: not added since datastructure completely filled already");
+            return;
         }
 
         public void EvalDeleteAasAndAsset(IHttpContext context, string aasid, bool deleteAsset = false)
@@ -837,7 +850,7 @@ namespace AasxRestServerLibrary
             if (deleteAsset && asset != null)
             {
                 context.Server.Logger.Debug($"Deleting Asset with idShort {asset.idShort ?? "--"} and id {asset.identification?.ToString() ?? "--"}");
-                this.Packages[0].AasEnv.Assets.Remove(asset);
+                this.Packages[findAasReturn.iPackage].AasEnv.Assets.Remove(asset);
             }
 
             // simple OK
@@ -2711,8 +2724,7 @@ namespace AasxRestServerLibrary
                 {
                     aaslist.Add(i.ToString() + " : "
                         + Net46ConsoleServer.Program.env[i].AasEnv.AdministrationShells[0].idShort + " : "
-                        + Net46ConsoleServer.Program.env[i].AasEnv.AdministrationShells[0].identification + " : "
-                        + Net46ConsoleServer.Program.envFileName[i]);
+                        + Net46ConsoleServer.Program.env[i].AasEnv.AdministrationShells[0].identification);
                 }
             }
 
