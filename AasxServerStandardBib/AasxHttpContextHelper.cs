@@ -984,6 +984,86 @@ namespace AasxRestServerLibrary
             // simple OK
             SendTextResponse(context, "OK" + ((existingAsset != null) ? " (updated)" : " (new)"));
         }
+
+        public void EvalPutAssetToAas(IHttpContext context, string aasid)
+        {
+            dynamic res = new ExpandoObject();
+            int index = -1;
+
+            // check authentication
+            if (withAuthentification)
+            {
+                string accessrights = SecurityCheck(context, ref index);
+
+                if (accessrights == null)
+                {
+                    res.error = "You are not authorized for this operation!";
+                    SendJsonResponse(context, res);
+                    return;
+                }
+
+                res.confirm = "Authorization = " + accessrights;
+            }
+
+            // first check
+            if (context.Request.Payload == null || context.Request.ContentType != ContentType.JSON)
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"No payload or content type is not JSON.");
+                Console.WriteLine("ERROR PUT: No payload or content type is not JSON.");
+                return;
+            }
+
+            // access the AAS
+            var findAasReturn = this.FindAAS(aasid, context.Request.QueryString, context.Request.RawUrl);
+            if (findAasReturn.aas == null)
+            {
+                context.Response.SendResponse(HttpStatusCode.NotFound, $"No AAS with idShort '{aasid}' found.");
+                Console.WriteLine("ERROR PUT: No AAS with idShort '{0}' found.", aasid);
+                return;
+            }
+
+            // de-serialize asset
+            AdminShell.Asset asset = null;
+            try
+            {
+                asset = Newtonsoft.Json.JsonConvert.DeserializeObject<AdminShell.Asset>(context.Request.Payload);
+            }
+            catch (Exception ex)
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"Cannot deserialize payload: {ex.Message}.");
+                return;
+            }
+            
+            // need id for idempotent behaviour
+            if (asset.identification == null)
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"Identification of entity is (null); PUT cannot be performed.");
+                Console.WriteLine("ERROR PUT: Identification of entity is (null); PUT cannot be performed.");
+                return;
+            }
+
+            // datastructure update
+            if (this.Packages[findAasReturn.iPackage] == null || this.Packages[findAasReturn.iPackage].AasEnv == null || this.Packages[findAasReturn.iPackage].AasEnv.Assets == null)
+            {
+                context.Response.SendResponse(HttpStatusCode.InternalServerError, $"Error accessing internal data structures.");
+                return;
+            }
+
+            // add Asset
+            context.Server.Logger.Debug($"Adding Asset with idShort {asset.idShort ?? "--"} and id {asset.identification?.ToString() ?? "--"}");
+            var existingAsset = this.Packages[findAasReturn.iPackage].AasEnv.FindAsset(asset.identification);
+            if (existingAsset != null)
+                this.Packages[findAasReturn.iPackage].AasEnv.Assets.Remove(existingAsset);
+            this.Packages[findAasReturn.iPackage].AasEnv.Assets.Add(asset);
+
+            // add AssetRef to AAS        
+            findAasReturn.aas.assetRef = new AdminShellV20.AssetRef(new AdminShellV20.Reference(new AdminShellV20.Key("Asset", true, asset.identification.idType, asset.identification.id)));
+
+            Console.WriteLine("{0} Received PUT Asset {1}", countPut++, asset.idShort);
+
+            // simple OK
+            SendTextResponse(context, "OK" + ((existingAsset != null) ? " (updated)" : " (new)"));
+        }
         #endregion
 
         #region // List of Submodels

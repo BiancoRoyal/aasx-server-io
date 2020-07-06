@@ -217,6 +217,17 @@ namespace AasxRestServerLibrary
                 return context;
             }
 
+            [RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aas/(id|([^/]+))/asset(/|)$")]
+            public IHttpContext PutAssetsToAas(IHttpContext context)
+            {
+                var m = helper.PathInfoRegexMatch(MethodBase.GetCurrentMethod(), context.Request.PathInfo);
+                if (m.Success && m.Groups.Count >= 2)
+                {
+                    helper.EvalPutAssetToAas(context, m.Groups[1].ToString());
+                }
+                return context;
+            }
+
             // List of Submodels
 
             [RestRoute(HttpMethod = HttpMethod.GET, PathInfo = "^/aas/(id|([^/]+))/submodels(/|)$")]
