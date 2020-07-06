@@ -847,10 +847,17 @@ namespace AasxRestServerLibrary
             context.Server.Logger.Debug($"Deleting AdministrationShell with idShort {findAasReturn.aas.idShort ?? "--"} and id {findAasReturn.aas.identification?.ToString() ?? "--"}");
             this.Packages[findAasReturn.iPackage].AasEnv.AdministrationShells.Remove(findAasReturn.aas);
 
-            if (deleteAsset && asset != null)
+            if (this.Packages[findAasReturn.iPackage].AasEnv.AdministrationShells.Count == 0)
             {
-                context.Server.Logger.Debug($"Deleting Asset with idShort {asset.idShort ?? "--"} and id {asset.identification?.ToString() ?? "--"}");
-                this.Packages[findAasReturn.iPackage].AasEnv.Assets.Remove(asset);
+                this.Packages[findAasReturn.iPackage] = null;
+            }
+            else
+            {
+                if (deleteAsset && asset != null)
+                {
+                    context.Server.Logger.Debug($"Deleting Asset with idShort {asset.idShort ?? "--"} and id {asset.identification?.ToString() ?? "--"}");
+                    this.Packages[findAasReturn.iPackage].AasEnv.Assets.Remove(asset);
+                }
             }
 
             // simple OK
@@ -2716,15 +2723,15 @@ namespace AasxRestServerLibrary
             // get the list
             var aaslist = new List<string>();
 
-            int aascount = Net46ConsoleServer.Program.env.Length;
+            int aascount = Packages.Length;
 
             for (int i = 0; i < aascount; i++)
             {
-                if (Net46ConsoleServer.Program.env[i] != null)
+                if (Packages[i] != null)
                 {
                     aaslist.Add(i.ToString() + " : "
-                        + Net46ConsoleServer.Program.env[i].AasEnv.AdministrationShells[0].idShort + " : "
-                        + Net46ConsoleServer.Program.env[i].AasEnv.AdministrationShells[0].identification);
+                        + Packages[i].AasEnv.AdministrationShells[0].idShort + " : "
+                        + Packages[i].AasEnv.AdministrationShells[0].identification);
                 }
             }
 
