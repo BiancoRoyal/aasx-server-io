@@ -47,6 +47,11 @@ namespace AasxRestServerLibrary
         public int iPackage = -1;
     }
 
+    public class AasxFileInfo
+    {
+        public string path = null;
+    }
+
     public class AasxHttpContextHelper
     {
         public static String SwitchToAASX = "";
@@ -805,6 +810,42 @@ namespace AasxRestServerLibrary
             return;
         }
 
+        public void EvalPutAasxOnServer(IHttpContext context)
+        {
+            // first check
+            if (context.Request.Payload == null || context.Request.ContentType != ContentType.JSON)
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"No payload or content type is not JSON.");
+                return;
+            }
+
+            AasxFileInfo file = Newtonsoft.Json.JsonConvert.DeserializeObject <AasxFileInfo>( context.Request.Payload);
+            if(!file.path.ToLower().EndsWith(".aasx"))
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"Not a path ending with \".aasx\"...:{file.path}. Aborting...");
+                return;
+            }
+
+            AdminShellPackageEnv aasEnv = null;
+            try
+            {
+                aasEnv = new AdminShellPackageEnv(file.path);
+            }
+            catch (Exception ex)
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"Cannot open {file.path}. Aborting... {ex.Message}");
+                return;
+            }
+            Packages[1] = aasEnv;
+            SendTextResponse(context, "OK (new, index=" + 1 + ")");
+            return;
+        }
+        
+        public void EvalPutAasxToFilesystem(IHttpContext context)
+        {
+
+        }
+        
         public void EvalDeleteAasAndAsset(IHttpContext context, string aasid, bool deleteAsset = false)
         {
             dynamic res = new ExpandoObject();
