@@ -81,7 +81,7 @@ namespace AdminShellNS
                 }
                 xr.Close();
             }
-            catch (Exception e)
+            catch
             {
                 ;
             }
@@ -140,6 +140,9 @@ namespace AdminShellNS
     public class AdminShellPackageEnv
     {
         private string fn = "New Package";
+
+        private string tempFn = null;
+
         private AdminShell.AdministrationShellEnv aasenv = new AdminShell.AdministrationShellEnv();
         private Package openPackage = null;
         private List<AdminShellPackageSupplementaryFile> pendingFilesToAdd = new List<AdminShellPackageSupplementaryFile>();
@@ -155,9 +158,9 @@ namespace AdminShellNS
                 this.aasenv = env;
         }
 
-        public AdminShellPackageEnv(string fn)
+        public AdminShellPackageEnv(string fn, bool indirectLoadSave = false)
         {
-            Load(fn);
+            Load(fn, indirectLoadSave);
         }
 
         public bool IsOpen
@@ -184,12 +187,13 @@ namespace AdminShellNS
             }
         }
 
-        public bool Load(string fn)
+        public bool Load(string fn, bool indirectLoadSave = false)
         {
-            CloseOpenPackage();
-            
             this.fn = fn;
-            
+            if (this.openPackage != null)
+                this.openPackage.Close();
+            this.openPackage = null;
+
             if (fn.ToLower().EndsWith(".xml"))
             {
                 // load only XML
@@ -208,7 +212,6 @@ namespace AdminShellNS
                 {
                     throw (new Exception(string.Format("While reading AAS {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
-                CloseOpenPackage();
                 return true;
             }
 
@@ -229,16 +232,36 @@ namespace AdminShellNS
                 {
                     throw (new Exception(string.Format("While reading AAS {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
-                CloseOpenPackage();
                 return true;
             }
 
             if (fn.ToLower().EndsWith(".aasx"))
             {
+                var fnToLoad = fn;
+                this.tempFn = null;
+                if (indirectLoadSave)
+                    try
+                    {
+                        this.tempFn = System.IO.Path.GetTempFileName().Replace(".tmp", ".aasx");
+                        System.IO.File.Copy(fn, this.tempFn);
+                        fnToLoad = this.tempFn;
+
+                        /*
+                        using (var src = File.Open(fn, FileMode.Open, FileAccess.Read))
+                        using (var dst = File.Open(this.tempFn, FileMode.Create))
+                            src.CopyTo(dst);
+                            */
+
+                    }
+                    catch (Exception ex)
+                    {
+                        throw (new Exception(string.Format("While copying AASX {0} for indirect load at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
+                    }
+
                 // load package AASX
                 try
                 {
-                    var package = Package.Open(fn, FileMode.Open);
+                    var package = Package.Open(fnToLoad, FileMode.Open);
 
                     // get the origin from the package
                     PackagePart originPart = null;
@@ -275,9 +298,7 @@ namespace AdminShellNS
                                     JsonSerializer serializer = new JsonSerializer();
                                     serializer.Converters.Add(new AdminShellConverters.JsonAasxConverter("modelType", "name"));
                                     this.aasenv = (AdminShell.AdministrationShellEnv)serializer.Deserialize(file, typeof(AdminShell.AdministrationShellEnv));
-                                    file.Close();
                                 }
-                                s.Close();
                             }
                         }
                         else
@@ -294,7 +315,6 @@ namespace AdminShellNS
                                 s.Close();
                             }
                         }
-                        package.Close();
                     }
                     catch (Exception ex)
                     {
@@ -303,10 +323,8 @@ namespace AdminShellNS
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("\n" + ex.Message);
                     throw (new Exception(string.Format("While reading AASX {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
-                CloseOpenPackage();
                 return true;
             }
 
@@ -337,8 +355,6 @@ namespace AdminShellNS
 
         public bool SaveAs(string fn, bool writeFreshly = false, PreferredFormat prefFmt = PreferredFormat.None, MemoryStream useMemoryStream = null)
         {
-            CloseOpenPackage();
-
             if (fn.ToLower().EndsWith(".xml"))
             {
                 // save only XML
@@ -360,7 +376,6 @@ namespace AdminShellNS
                 {
                     throw (new Exception(string.Format("While writing AAS {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
-                CloseOpenPackage();
                 return true;
             }
 
@@ -391,7 +406,6 @@ namespace AdminShellNS
                 {
                     throw (new Exception(string.Format("While writing AAS {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
-                CloseOpenPackage();
                 return true;
             }
 
@@ -400,6 +414,11 @@ namespace AdminShellNS
                 // save package AASX
                 try
                 {
+                    this.tempFn = null;
+                    if (this.openPackage != null)
+                        this.openPackage.Close();
+                    this.openPackage = null;
+
                     // we want existing contents to be preserved, but no possiblity to change file name
                     // therefore: copy file to new name, re-open!
                     // fn could be changed, therefore close "old" package first
@@ -409,7 +428,12 @@ namespace AdminShellNS
                         {
                             this.openPackage.Close();
                             if (!writeFreshly)
-                                System.IO.File.Copy(this.fn, fn);
+                            {
+                                if (this.tempFn != null)
+                                    System.IO.File.Copy(this.tempFn, fn);
+                                else
+                                    System.IO.File.Copy(this.fn, fn);
+                            }
                         }
                         catch { }
                         this.openPackage = null;
@@ -417,13 +441,13 @@ namespace AdminShellNS
 
                     // approach is to utilize the existing package, if possible. If not, create from scratch
                     Package package = null;
-                    if (useMemoryStream == null)
+                    if (useMemoryStream != null)
                     {
-                        package = Package.Open(fn, (writeFreshly) ? FileMode.Create : FileMode.OpenOrCreate);
+                        package = Package.Open(useMemoryStream, (writeFreshly) ? FileMode.Create : FileMode.OpenOrCreate);                        
                     }
                     else
                     {
-                        package = Package.Open(useMemoryStream, (writeFreshly) ? FileMode.Create : FileMode.OpenOrCreate);
+                        package = Package.Open((this.tempFn != null) ? this.tempFn : fn, (writeFreshly) ? FileMode.Create : FileMode.OpenOrCreate);
                     }
                     this.fn = fn;
 
@@ -670,10 +694,24 @@ namespace AdminShellNS
                     // after this, there are no more pending for add files
                     pendingFilesToAdd.Clear();
 
-                    // flush
+                    // flush, but leave open
                     package.Flush();
+                    this.openPackage = null;
+                    package.Close();
 
-                    CloseOpenPackage();
+
+                    // if in temp fn, close the package, copy to original fn, re-open the package
+                    if (this.tempFn != null)
+                        try
+                        {
+                            package.Close();
+                            System.IO.File.Copy(this.tempFn, this.fn, overwrite: true);
+                            this.openPackage = Package.Open(this.tempFn, FileMode.OpenOrCreate);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw (new Exception(string.Format("While write AASX {0} indirectly at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
+                        }
                 }
                 catch (Exception ex)
                 {
@@ -902,8 +940,10 @@ namespace AdminShellNS
             AdminShellPackageSupplementaryFile.SourceGetByteChunk sourceGetBytesDel = null, string useMimeType = null)
         {
             // beautify parameters
-            if (sourcePath != null)
-                sourcePath = sourcePath.Trim();
+            if ((sourcePath == null && sourceGetBytesDel == null) || targetDir == null || targetFn == null)
+                return;
+
+            // build target path
             targetDir = targetDir.Trim();
             if (!targetDir.EndsWith("/"))
                 targetDir += "/";
@@ -912,18 +952,33 @@ namespace AdminShellNS
             if (sourcePath == "" || targetDir == "" || targetFn == "")
                 throw (new Exception(string.Format("Trying add supplementary file with empty name or path!")));
 
-            var file_fn = "" + targetDir.Trim() + targetFn.Trim();
+            var targetPath = "" + targetDir.Trim() + targetFn.Trim();
 
+            // base funciton
+            AddSupplementaryFileToStore(sourcePath, targetPath, embedAsThumb, sourceGetBytesDel, useMimeType);
+        }
+
+        public void AddSupplementaryFileToStore(string sourcePath, string targetPath, bool embedAsThumb,
+            AdminShellPackageSupplementaryFile.SourceGetByteChunk sourceGetBytesDel = null, string useMimeType = null)
+        {
+            // beautify parameters
+            if ((sourcePath == null && sourceGetBytesDel == null) || targetPath == null)
+                return;
+
+            sourcePath = sourcePath?.Trim();
+            targetPath = targetPath.Trim();
+            
             // add record
             pendingFilesToAdd.Add(
                 new AdminShellPackageSupplementaryFile(
-                    new Uri(file_fn, UriKind.RelativeOrAbsolute),
+                    new Uri(targetPath, UriKind.RelativeOrAbsolute),
                     sourcePath,
                     location: AdminShellPackageSupplementaryFile.LocationType.AddPending,
                     specialHandling: (embedAsThumb ? AdminShellPackageSupplementaryFile.SpecialHandlingType.EmbedAsThumbnail : AdminShellPackageSupplementaryFile.SpecialHandlingType.None),
                     sourceGetBytesDel: sourceGetBytesDel,
                     useMimeType: useMimeType)
                 );
+
         }
 
         public void DeleteSupplementaryFile(AdminShellPackageSupplementaryFile psf)
@@ -1002,13 +1057,6 @@ namespace AdminShellNS
             this.openPackage = null;
             this.fn = "";
             this.aasenv = null;
-        }
-
-        public void CloseOpenPackage()
-        {
-            if (this.openPackage != null)
-                this.openPackage.Close();
-            this.openPackage = null;
         }
 
         public string MakePackageFileAvailableAsTempFile(string packageUri)

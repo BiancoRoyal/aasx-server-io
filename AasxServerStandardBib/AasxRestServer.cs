@@ -74,17 +74,21 @@ namespace AasxRestServerLibrary
                 return context;
             }
 
-            [RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aasx(/|)$")]
-            public IHttpContext PutAasx(IHttpContext context)
+            [RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aasx/server(/|)$")]
+            public IHttpContext PutAasxOnServer(IHttpContext context)
             {
                 helper.EvalPutAasxOnServer(context);
                 return context;
             }
 
-            [RestRoute(HttpMethod = HttpMethod.GET, PathInfo = "^/aasx(/|)$")]
-            public IHttpContext GetAasx(IHttpContext context)
+            [RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aasx/filesystem/([^/]+)(/|)$")]
+            public IHttpContext PutAasxToFileSystem(IHttpContext context)
             {
-                helper.EvalPutAasxToFilesystem(context);
+                var m = helper.PathInfoRegexMatch(MethodBase.GetCurrentMethod(), context.Request.PathInfo);
+                if (m.Success && m.Groups.Count >= 2)
+                {
+                    helper.EvalPutAasxToFilesystem(context, m.Groups[1].ToString());
+                }
                 return context;
             }
 

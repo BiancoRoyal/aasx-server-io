@@ -873,11 +873,46 @@ namespace AasxRestServerLibrary
             }
         }
         
-        public void EvalPutAasxToFilesystem(IHttpContext context)
+        public void EvalPutAasxToFilesystem(IHttpContext context, string aasid)
         {
+            // first check
+            if (context.Request.Payload == null || context.Request.ContentType != ContentType.JSON)
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"No payload or content type is not JSON.");
+                return;
+            }
 
+            AasxFileInfo file = Newtonsoft.Json.JsonConvert.DeserializeObject<AasxFileInfo>(context.Request.Payload);
+            if (!file.path.ToLower().EndsWith(".aasx"))
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"Not a path ending with \".aasx\"...:{file.path}. Aborting...");
+                return;
+            }
+
+            var findAasReturn = this.FindAAS(aasid, context.Request.QueryString, context.Request.RawUrl);
+            Console.WriteLine("FindAAS() with idShort \"" + aasid + "\" yields package-index " + findAasReturn.iPackage);
+
+            if (findAasReturn.aas == null)
+            {
+                SendTextResponse(context, "Failed: AAS not found.");
+                return;
+            }
+            else
+            {
+                try
+                {
+                    Packages[findAasReturn.iPackage].SaveAs(file.path, false, AdminShellPackageEnv.PreferredFormat.Json, null);
+                }
+                catch (Exception ex)
+                {
+                    context.Response.SendResponse(HttpStatusCode.BadRequest, $"Cannot save in {file.path}. Aborting... {ex.Message}");
+                    return;
+                }
+                SendTextResponse(context, "OK (saved)");
+                return;
+            }
         }
-        
+
         public void EvalDeleteAasAndAsset(IHttpContext context, string aasid, bool deleteAsset = false)
         {
             dynamic res = new ExpandoObject();
