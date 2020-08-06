@@ -186,11 +186,10 @@ namespace AdminShellNS
 
         public bool Load(string fn)
         {
+            CloseOpenPackage();
+            
             this.fn = fn;
-            if (this.openPackage != null)
-                this.openPackage.Close();
-            this.openPackage = null;
-
+            
             if (fn.ToLower().EndsWith(".xml"))
             {
                 // load only XML
@@ -209,6 +208,7 @@ namespace AdminShellNS
                 {
                     throw (new Exception(string.Format("While reading AAS {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
+                CloseOpenPackage();
                 return true;
             }
 
@@ -229,6 +229,7 @@ namespace AdminShellNS
                 {
                     throw (new Exception(string.Format("While reading AAS {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
+                CloseOpenPackage();
                 return true;
             }
 
@@ -302,6 +303,7 @@ namespace AdminShellNS
                     Console.WriteLine("\n" + ex.Message);
                     throw (new Exception(string.Format("While reading AASX {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
+                CloseOpenPackage();
                 return true;
             }
 
@@ -332,6 +334,7 @@ namespace AdminShellNS
 
         public bool SaveAs(string fn, bool writeFreshly = false, PreferredFormat prefFmt = PreferredFormat.None, MemoryStream useMemoryStream = null)
         {
+            CloseOpenPackage();
 
             if (fn.ToLower().EndsWith(".xml"))
             {
@@ -354,6 +357,7 @@ namespace AdminShellNS
                 {
                     throw (new Exception(string.Format("While writing AAS {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
+                CloseOpenPackage();
                 return true;
             }
 
@@ -384,6 +388,7 @@ namespace AdminShellNS
                 {
                     throw (new Exception(string.Format("While writing AAS {0} at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                 }
+                CloseOpenPackage();
                 return true;
             }
 
@@ -662,9 +667,10 @@ namespace AdminShellNS
                     // after this, there are no more pending for add files
                     pendingFilesToAdd.Clear();
 
-                    // flush, but leave open
+                    // flush
                     package.Flush();
-                    this.openPackage = package;
+
+                    CloseOpenPackage();
                 }
                 catch (Exception ex)
                 {
@@ -993,6 +999,13 @@ namespace AdminShellNS
             this.openPackage = null;
             this.fn = "";
             this.aasenv = null;
+        }
+
+        public void CloseOpenPackage()
+        {
+            if (this.openPackage != null)
+                this.openPackage.Close();
+            this.openPackage = null;
         }
 
         public string MakePackageFileAvailableAsTempFile(string packageUri)
