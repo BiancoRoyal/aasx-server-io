@@ -275,7 +275,9 @@ namespace AdminShellNS
                                     JsonSerializer serializer = new JsonSerializer();
                                     serializer.Converters.Add(new AdminShellConverters.JsonAasxConverter("modelType", "name"));
                                     this.aasenv = (AdminShell.AdministrationShellEnv)serializer.Deserialize(file, typeof(AdminShell.AdministrationShellEnv));
+                                    file.Close();
                                 }
+                                s.Close();
                             }
                         }
                         else
@@ -292,6 +294,7 @@ namespace AdminShellNS
                                 s.Close();
                             }
                         }
+                        package.Close();
                     }
                     catch (Exception ex)
                     {

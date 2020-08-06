@@ -836,9 +836,41 @@ namespace AasxRestServerLibrary
                 context.Response.SendResponse(HttpStatusCode.BadRequest, $"Cannot open {file.path}. Aborting... {ex.Message}");
                 return;
             }
-            Packages[1] = aasEnv;
-            SendTextResponse(context, "OK (new, index=" + 1 + ")");
-            return;
+
+            string aasIdShort = "";
+            try
+            {
+                aasIdShort = aasEnv.AasEnv.AdministrationShells[0].idShort;
+            }
+            catch (Exception ex)
+            {
+                context.Response.SendResponse(HttpStatusCode.BadRequest, $"Cannot find idShort in {file.path}. Aborting... {ex.Message}");
+                return;
+            }
+
+            var findAasReturn = this.FindAAS(aasIdShort, context.Request.QueryString, context.Request.RawUrl);
+            Console.WriteLine("FindAAS() with idShort \"" + aasIdShort + "\" yields package-index "+findAasReturn.iPackage);
+
+            if (findAasReturn.aas == null)
+            {
+                for (int envi = 0; envi < this.Packages.Length; envi++)
+                {
+                    if (this.Packages[envi] == null)
+                    {
+                        this.Packages[envi] = aasEnv;
+                        SendTextResponse(context, "OK (new, index=" + envi + ")");
+                        return;
+                    }
+                }
+                SendTextResponse(context, "Failed: Server used to capacity.");
+                return;
+            }
+            else
+            {
+                Packages[findAasReturn.iPackage] = aasEnv;
+                SendTextResponse(context, "OK (update, index=" + findAasReturn.iPackage + ")");
+                return;
+            }
         }
         
         public void EvalPutAasxToFilesystem(IHttpContext context)
