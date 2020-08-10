@@ -16,11 +16,11 @@ And run with:
 docker run -d -p 51210:51210 -p 51310:51310 --name AasxServer aasxserver-img
 
 ---
-COMMENTS to branch itsOWL-TeDZ_restPutNewAasAndAssetOnRestServer:
+COMMENTS to branch itsOWL-TeDZ_readAndWriteAASX:
 -this branch was created for adapting the aasxserver to the demonstrator being implemented in the SmartFactoryOWL within the it's OWL-project TeDZ
 -adapted functionality:
---add aas to server by rest-put
---add asset to aas with specified aasid
+--add aasx from filesystem to server by rest-put
+--save aasx from server to filesystem by rest-put
 
 QUESTIONS:
 -how do we want to handle the second and follwing aas-entries in an aas-package? currently, they are ignored.

@@ -262,7 +262,7 @@ namespace AdminShellNS
                 try
                 {
                     var package = Package.Open(fnToLoad, FileMode.Open);
-
+                    
                     // get the origin from the package
                     PackagePart originPart = null;
                     var xs = package.GetRelationshipsByType("http://www.admin-shell.io/aasx/relationships/aasx-origin");
@@ -274,7 +274,7 @@ namespace AdminShellNS
                         }
                     if (originPart == null)
                         throw (new Exception(string.Format("Unable to find AASX origin. Aborting!")));
-
+                    
                     // get the specs from the package
                     PackagePart specPart = null;
                     xs = originPart.GetRelationshipsByType("http://www.admin-shell.io/aasx/relationships/aas-spec");
@@ -285,7 +285,7 @@ namespace AdminShellNS
                     }
                     if (specPart == null)
                         throw (new Exception(string.Format("Unable to find AASX spec(s). Aborting!")));
-
+                    
                     // open spec part to read
                     try
                     {
@@ -298,7 +298,9 @@ namespace AdminShellNS
                                     JsonSerializer serializer = new JsonSerializer();
                                     serializer.Converters.Add(new AdminShellConverters.JsonAasxConverter("modelType", "name"));
                                     this.aasenv = (AdminShell.AdministrationShellEnv)serializer.Deserialize(file, typeof(AdminShell.AdministrationShellEnv));
+                                    file.Close();
                                 }
+                                s.Close();
                             }
                         }
                         else
@@ -320,6 +322,7 @@ namespace AdminShellNS
                     {
                         throw (new Exception(string.Format("While reading AAS {0} spec at {1} gave: {2}", fn, AdminShellUtil.ShortLocation(ex), ex.Message)));
                     }
+                    package.Close();
                 }
                 catch (Exception ex)
                 {
