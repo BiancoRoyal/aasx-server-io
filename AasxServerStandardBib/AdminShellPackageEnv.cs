@@ -867,7 +867,8 @@ namespace AdminShellNS
                     break;
                 }
             if (thumbPart == null)
-                throw (new Exception("Unable to find AASX thumbnail. Aborting!"));
+                return null;
+                // throw (new Exception("Unable to find AASX thumbnail. Aborting!"));
             return thumbPart.GetStream(FileMode.Open);
         }
 
