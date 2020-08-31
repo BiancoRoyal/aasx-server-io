@@ -812,6 +812,7 @@ namespace AasxRestServerLibrary
 
         public void EvalPutAasxOnServer(IHttpContext context)
         {
+            Console.WriteLine("EvalPutAasxOnServer: " + context.Request.Payload);
             // first check
             if (context.Request.Payload == null || context.Request.ContentType != ContentType.JSON)
             {
