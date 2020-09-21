@@ -1321,8 +1321,15 @@ namespace AasxRestServerLibrary
             context.Server.Logger.Debug($"Adding Submodel with idShort {submodel.idShort ?? "--"} and id {submodel.identification?.ToString() ?? "--"}");
             var existingSm = this.Packages[findAasReturn.iPackage].AasEnv.FindSubmodel(submodel.identification);
             if (existingSm != null)
-                this.Packages[findAasReturn.iPackage].AasEnv.Submodels.Remove(existingSm);
-            this.Packages[findAasReturn.iPackage].AasEnv.Submodels.Add(submodel);
+            {
+                int indexOfExistingSm = this.Packages[findAasReturn.iPackage].AasEnv.Submodels.IndexOf(existingSm);
+                this.Packages[findAasReturn.iPackage].AasEnv.Submodels.RemoveAt(indexOfExistingSm);
+                this.Packages[findAasReturn.iPackage].AasEnv.Submodels.Insert(indexOfExistingSm, submodel);
+            }
+            else
+            {
+                this.Packages[findAasReturn.iPackage].AasEnv.Submodels.Add(submodel);
+            }
 
             // add SubmodelRef to AAS            
             var newsmr = AdminShell.SubmodelRef.CreateNew("Submodel", true, submodel.identification.idType, submodel.identification.id);
