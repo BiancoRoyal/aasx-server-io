@@ -16,11 +16,10 @@ And run with:
 docker run -d -p 51210:51210 -p 51310:51310 --name AasxServer aasxserver-img
 
 ---
-COMMENTS to branch itsOWL-TeDZ_readAndWriteAASX:
+COMMENTS to branch itsOWL-TeDZ_replaceSubmodelAndSubmodelElement:
 -this branch was created for adapting the aasxserver to the demonstrator being implemented in the SmartFactoryOWL within the it's OWL-project TeDZ
 -adapted functionality:
---add aasx from filesystem to server by rest-put
---save aasx from server to filesystem by rest-put
+--existing submodels and submodelElements are replaced so that the ordering does not change
 
 QUESTIONS:
 -how do we want to handle the second and follwing aas-entries in an aas-package? currently, they are ignored.
