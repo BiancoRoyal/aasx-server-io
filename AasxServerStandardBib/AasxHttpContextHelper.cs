@@ -1844,11 +1844,15 @@ namespace AasxRestServerLibrary
                 {
                     updated = true;
                     context.Server.Logger.Debug($"Removing old SubmodelElement {sme.idShort} from Submodel {smid}.");
-                    sm.submodelElements.Remove(existsmw);
+                    int indexOfExistingSmw = sm.submodelElements.IndexOf(existsmw);
+                    sm.submodelElements.RemoveAt(indexOfExistingSmw);
+                    sm.Insert(indexOfExistingSmw, sme);
                 }
-
-                context.Server.Logger.Debug($"Adding new SubmodelElement {sme.idShort} to Submodel {smid}.");
-                sm.Add(sme);
+                else
+                {
+                    context.Server.Logger.Debug($"Adding new SubmodelElement {sme.idShort} to Submodel {smid}.");
+                    sm.Add(sme);
+                }
             }
             else
             {
@@ -1868,11 +1872,15 @@ namespace AasxRestServerLibrary
                     {
                         updated = true;
                         context.Server.Logger.Debug($"Removing old SubmodelElement {sme.idShort} from SubmodelCollection.");
-                        parentsmc.value.Remove(existsmw);
+                        int indexOfExistingSmw = parentsmc.value.IndexOf(existsmw);
+                        parentsmc.value.RemoveAt(indexOfExistingSmw);
+                        parentsmc.Insert(indexOfExistingSmw, sme);
                     }
-
-                    context.Server.Logger.Debug($"Adding new SubmodelElement {sme.idShort} to SubmodelCollection.");
-                    parentsmc.Add(sme);
+                    else
+                    {
+                        context.Server.Logger.Debug($"Adding new SubmodelElement {sme.idShort} to SubmodelCollection.");
+                        parentsmc.Add(sme);
+                    }
                 }
                 else
                 {
