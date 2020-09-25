@@ -1,25 +1,34 @@
-Server of I40 .AASX packages accessable by REST, OPC UA and MQTT
+Merging of the three branches
+ itsOWL-TeDZ_restPutNewAasAndAssetOnRestServer
+ itsOWL-TeDZ_readAndWriteAASX
+ itsOWL-TeDZ_replaceSubmodelAndSubmodelElement
+from the GitLab-Repo
+ https://gitlab.com/aorzelskiGL/aasxserver.git
+in new branch
+ itsOWL-TeDZ_restServerUpdates
+in GitHub-Repo
+ https://github.com/admin-shell-io/aasx-server
 
-AASX Server - based on code of AASX Package Explorer
+Implemented functionality of REST-server in itsOWL-TeDZ_restPutNewAasAndAssetOnRestServer:
+-add/update AAS in REST-server by REST-PUT
+--adapted the helper-function in [RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aas(/|)$")] 
+-add/update Asset in AAS-environment with AAS of specified AAS-IdShort by REST-PUT
+--new [RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aas/(id|([^/]+))/asset(/|)$")]
 
-Binary download with short explanation at
-https://github.com/admin-shell/aasx-server
+Implemented functionality of REST-server in itsOWL-TeDZ_readAndWriteAASX:
+-load AAS-environment from AASX-file to REST-server while REST-server is allready operating
+--adds/updates AAS-environment in REST-server
+--request to load by REST-PUT
+---new [RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aasx/server(/|)$")]
+---JSON-content: AASX-file-path
+-save AAS-environment in AASX-file
+--request to save by REST-PUT
+---new [RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aasx/filesystem/([^/]+)(/|)$")]
+---JSON-content: AASX-file-path
 
-To run inside a Docker container on Linux/MacOS:
-Build the container with buildContainer.sh
-Run the container with runContainer.sh
-
-You can then connect to the ports as ususal. For Windows, there is no script yet. You can do that manually by using the command line (for non Linux systems):
-Build your container with:
-docker build -t aasxserver-img .
-And run with:
-docker run -d -p 51210:51210 -p 51310:51310 --name AasxServer aasxserver-img
-
----
-COMMENTS to branch itsOWL-TeDZ_replaceSubmodelAndSubmodelElement:
--this branch was created for adapting the aasxserver to the demonstrator being implemented in the SmartFactoryOWL within the it's OWL-project TeDZ
--adapted functionality:
---existing submodels and submodelElements are replaced so that the ordering does not change
-
-QUESTIONS:
--how do we want to handle the second and follwing aas-entries in an aas-package? currently, they are ignored.
+Implemented functionality of REST-server in itsOWL-TeDZ_replaceSubmodelAndSubmodelElement:
+-updated submodels and submodelElements are replaced so that their ordering does not change
+(-before: existing submodels/submodelElements were removed and their update was added to the end of the collection)
+--adapted helper-functions in 
+---[RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aas/(id|([^/]+))/submodels(/|)$")]
+---[RestRoute(HttpMethod = HttpMethod.PUT, PathInfo = "^/aas/(id|([^/]+))/submodels/([^/]+)/elements(/([^/]+)){0,99}?(/|)$")]
